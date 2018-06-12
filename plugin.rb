@@ -39,24 +39,24 @@ after_initialize {
 
   # model callbacks (cache invalidation)
   add_model_callback(:user_stat, :after_save) {
-    if self.post_count_changed?
+    if self.saved_change_to_post_count?
       User.set_user_info(self.user_id)
     end
   }
 
   add_model_callback(:user_profile, :after_save) {
-    if self.location_changed?
+    if self.saved_change_to_location?
       User.set_user_info(self.user_id)
     end
   }
 
   add_model_callback(:user, :after_save) {
-    if self.name_changed?
+    if self.saved_change_to_name?
       User.set_cached_name(self.id, self.name)
       User.set_cached_name2(self.username, self.name)
     end
 
-    if self.username_changed?
+    if self.saved_change_to_username?
       User.set_cached_name2(self.username, self.name)
     end
   }
