@@ -1,0 +1,4 @@
+plugins:
+  custom_attributes_enabled:
+    default: true
+    client: true
