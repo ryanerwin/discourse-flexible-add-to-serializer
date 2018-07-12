@@ -11,7 +11,7 @@ after_initialize {
   add_to_serializer(:post, :user_info) {
     user_id = object.user_id
 
-    if @topic_view && user_id.present?
+    if user_id.present?
       User.get_user_info(user_id)
     end
   }
