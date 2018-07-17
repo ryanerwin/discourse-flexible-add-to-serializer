@@ -38,32 +38,43 @@ after_initialize {
   }
 
   # model callbacks (cache invalidation)
-  add_model_callback(:user_stat, :after_save) {
-    if self.saved_change_to_post_count?
-      User.set_user_info(self.user_id)
-    end
+  require_dependency "user_stat"
+  UserStat.class_eval {
+
+    after_save {
+      if self.saved_change_to_post_count?
+        User.set_user_info(self.user_id)
+      end
+    }
+
   }
 
-  add_model_callback(:user_profile, :after_save) {
-    if self.saved_change_to_location?
-      User.set_user_info(self.user_id)
-    end
+  require_dependency "user_profile"
+  UserProfile.class_eval {
+
+    after_save {
+      if self.saved_change_to_location?
+        User.set_user_info(self.user_id)
+      end
+    }
+
   }
 
-  add_model_callback(:user, :after_save) {
-    if self.saved_change_to_name?
-      User.set_cached_name(self.id, self.name)
-      User.set_cached_name2(self.username, self.name)
-    end
-
-    if self.saved_change_to_username?
-      User.set_cached_name2(self.username, self.name)
-    end
-  }
-
-  # class methods
+  require_dependency "user"
   User.class_eval {
 
+    after_save {
+      if self.saved_change_to_name?
+        User.set_cached_name(self.id, self.name)
+        User.set_cached_name2(self.username, self.name)
+      end
+
+      if self.saved_change_to_username?
+        User.set_cached_name2(self.username, self.name)
+      end
+    }
+
+    # class methods
     def self.get_cached_name(user_id)
       $redis.get("name_#{user_id}") || set_cached_name(user_id)
     end
