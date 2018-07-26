@@ -1,5 +1,5 @@
 # name: custom-attributes
-# version: 0.1
+# version: 0.2
 # author: Muhlis Budi Cahyono (muhlisbc@gmail.com)
 # url: https://github.com/ryanerwin/discourse-flexible-add-to-serializer
 
@@ -13,6 +13,32 @@ after_initialize {
 
     if user_id.present?
       User.get_user_info(user_id)
+    end
+  }
+
+  require_dependency "basic_post_serializer"
+  BasicPostSerializer.class_eval {
+
+    alias_method :orig_cooked, :cooked
+
+    def cooked
+      @original_cooked ||= orig_cooked
+
+      return @original_cooked if !SiteSetting.custom_attributes_enabled
+
+      cooked_html = Nokogiri::HTML.fragment(@original_cooked)
+      post_quotes = cooked_html.css("aside.quote.no-group .title")
+
+      return @original_cooked if !post_quotes
+
+      post_quotes.each do |el|
+        if el.children[-1]
+          quote_username = el.children[-1].text.tr(" :", "")
+          el.children[-1].content = " #{User.get_cached_name2(quote_username)}:"
+        end
+      end
+
+      cooked_html.to_html
     end
   }
 
