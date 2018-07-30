@@ -1,5 +1,5 @@
 # name: custom-attributes
-# version: 0.2
+# version: 0.2.1
 # author: Muhlis Budi Cahyono (muhlisbc@gmail.com)
 # url: https://github.com/ryanerwin/discourse-flexible-add-to-serializer
 
@@ -92,11 +92,11 @@ after_initialize {
     after_save {
       if self.saved_change_to_name?
         User.set_cached_name(self.id, self.name)
-        User.set_cached_name2(self.username, self.name)
+        User.set_cached_name2(self.username_lower, self.name)
       end
 
       if self.saved_change_to_username?
-        User.set_cached_name2(self.username, self.name)
+        User.set_cached_name2(self.username_lower, self.name)
       end
     }
 
@@ -112,11 +112,12 @@ after_initialize {
     end
 
     def self.get_cached_name2(username)
+      username = username.downcase
       $redis.get("name_u_#{username}") || set_cached_name2(username)
     end
 
     def self.set_cached_name2(username, name = nil)
-      name ||= (User.where(username: username).first&.name || "")
+      name ||= (User.where(username_lower: username).first&.name || "")
       $redis.set("name_u_#{username}", name)
       name
     end
