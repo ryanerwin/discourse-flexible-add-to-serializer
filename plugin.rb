@@ -1,5 +1,5 @@
 # name: custom-attributes
-# version: 0.2.1
+# version: 0.2.2
 # author: Muhlis Budi Cahyono (muhlisbc@gmail.com)
 # url: https://github.com/ryanerwin/discourse-flexible-add-to-serializer
 
@@ -29,12 +29,33 @@ after_initialize {
       cooked_html = Nokogiri::HTML.fragment(@original_cooked)
       post_quotes = cooked_html.css("aside.quote.no-group .title")
 
-      return @original_cooked if !post_quotes
+      return @original_cooked if post_quotes.blank?
 
       post_quotes.each do |el|
-        if el.children[-1]
-          quote_username = el.children[-1].text.tr(" :", "")
-          el.children[-1].content = " #{User.get_cached_name2(quote_username)}:"
+        if el.css("img.avatar")
+          topic_link = el.css("a")[0]
+
+          if topic_link # quote to other topic
+            parent      = el.parent
+            topic_id    = parent.attr("data-topic")
+            post_number = parent.attr("data-post")
+
+            if topic_id && post_number
+              post = Post.find_by(topic_id: topic_id.to_i, post_number: post_number.to_i)
+
+              if post
+                avatar_el = el.css("img.avatar")[0]
+
+                avatar_el.name = "span"
+                avatar_el.attributes.keys.each { |a| avatar_el.remove_attribute(a) }
+
+                avatar_el.content = "#{User.get_cached_name(post.user_id)} #{I18n.t('serializer.in')} "
+              end
+            end
+          else
+            quote_username = el.children[-1].text.tr(" :", "")
+            el.children[-1].content = " #{User.get_cached_name2(quote_username)}:"
+          end
         end
       end
 

@@ -1,3 +1,5 @@
 en:
   site_settings: 
     custom_attributes_enabled: "Enable custom attributes?"
+  serializer:
+    in: "in"
