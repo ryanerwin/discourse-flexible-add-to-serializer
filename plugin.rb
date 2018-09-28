@@ -1,5 +1,5 @@
 # name: custom-attributes
-# version: 0.2.2
+# version: 0.2.3
 # author: Muhlis Budi Cahyono (muhlisbc@gmail.com)
 # url: https://github.com/ryanerwin/discourse-flexible-add-to-serializer
 
@@ -33,28 +33,34 @@ after_initialize {
 
       post_quotes.each do |el|
         if el.css("img.avatar")
-          topic_link = el.css("a")[0]
+          parent      = el.parent
+          topic_id    = parent.attr("data-topic")
+          post_number = parent.attr("data-post")
+          topic_link  = el.css("a")[0]
 
-          if topic_link # quote to other topic
-            parent      = el.parent
-            topic_id    = parent.attr("data-topic")
-            post_number = parent.attr("data-post")
-
+          if topic_link # quote to other topic with link
             if topic_id && post_number
               post = Post.find_by(topic_id: topic_id.to_i, post_number: post_number.to_i)
 
               if post
                 avatar_el = el.css("img.avatar")[0]
 
-                avatar_el.name = "span"
-                avatar_el.attributes.keys.each { |a| avatar_el.remove_attribute(a) }
-
-                avatar_el.content = "#{User.get_cached_name(post.user_id)} #{I18n.t('serializer.in')} "
+                avatar_el.next = "#{User.get_cached_name(post.user_id)} #{I18n.t('serializer.in')} "
               end
             end
           else
-            quote_username = el.children[-1].text.tr(" :", "")
-            el.children[-1].content = " #{User.get_cached_name2(quote_username)}:"
+            quote_username = el.children[-1].text.strip
+
+            if !quote_username.blank? # quote to same topic
+              quote_username = quote_username.tr(" :", "")
+              el.children[-1].content = " #{User.get_cached_name2(quote_username)}:"
+            else # quote to other topic without link
+              post = Post.find_by(topic_id: topic_id.to_i, post_number: post_number.to_i)
+
+              if post
+                el.add_child(User.get_cached_name(post.user_id))
+              end
+            end
           end
         end
       end
