@@ -1,5 +1,5 @@
 # name: custom-attributes
-# version: 0.2.4
+# version: 0.2.5
 # author: Muhlis Budi Cahyono (muhlisbc@gmail.com)
 # url: https://github.com/ryanerwin/discourse-flexible-add-to-serializer
 
@@ -34,35 +34,37 @@ after_initialize {
       return @original_cooked if post_quotes.blank?
 
       post_quotes.each do |el|
-        if el.css("img.avatar")
-          parent      = el.parent
-          topic_id    = parent.attr("data-topic")
-          post_number = parent.attr("data-post")
-          topic_link  = el.css("a")[0]
+        next if el.css("img.avatar").blank?
 
-          if topic_link # quote to other topic with link
-            if topic_id && post_number
-              post = Post.find_by(topic_id: topic_id.to_i, post_number: post_number.to_i)
+        parent          = el.parent
+        topic_id        = parent.attr("data-topic")
+        post_number     = parent.attr("data-post")
+        quote_username  = el.children[-1].text.strip
 
-              if post
-                avatar_el = el.css("img.avatar")[0]
+        if quote_username.present?
+          quote_username          = quote_username.tr(" :", "")
+          el.children[-1].content = "#{User.get_cached_name2(quote_username)}:"
+        elsif topic_id && post_number
+          post          = Post.find_by(topic_id: topic_id.to_i, post_number: post_number.to_i)
 
-                avatar_el.next = "#{User.get_cached_name(post.user_id)} #{I18n.t('serializer.in')} "
-              end
+          if post
+            topic_link  = el.css("a")[0]
+            avatar_el   = el.css("img.avatar")[0]
+            user_name   = "#{User.get_cached_name(post.user_id)} #{I18n.t('serializer.in')} "
+            topic       = post.topic
+
+            unless topic_link
+              parent.set_attribute("data-full", "true")
+
+              can_see_topic = scope.can_see_topic?(topic)
+
+              link_attrs    = %Q(class=#{!can_see_topic ? "no-track-link" : ""})
+              link_attrs   += %Q( onclick="return false" ) if !can_see_topic
+              
+              user_name    += %Q(<a href="#{post.full_url}" #{link_attrs}>#{topic.fancy_title}</a>)
             end
-          else
-            quote_username = el.children[-1].text.strip
 
-            if !quote_username.blank? # quote to same topic
-              quote_username = quote_username.tr(" :", "")
-              el.children[-1].content = " #{User.get_cached_name2(quote_username)}:"
-            else # quote to other topic without link
-              post = Post.find_by(topic_id: topic_id.to_i, post_number: post_number.to_i)
-
-              if post
-                el.add_child(User.get_cached_name(post.user_id))
-              end
-            end
+            avatar_el.next = user_name
           end
         end
       end
