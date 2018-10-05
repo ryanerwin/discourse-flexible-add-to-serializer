@@ -1,11 +1,13 @@
 # name: custom-attributes
-# version: 0.2.3
+# version: 0.2.4
 # author: Muhlis Budi Cahyono (muhlisbc@gmail.com)
 # url: https://github.com/ryanerwin/discourse-flexible-add-to-serializer
 
 enabled_site_setting :custom_attributes_enabled
 
 after_initialize {
+
+  load File.expand_path("../jobs/reset_real_names.rb", __FILE__)
 
   # custom attributes
   add_to_serializer(:post, :user_info) {
@@ -27,7 +29,7 @@ after_initialize {
       return @original_cooked if !SiteSetting.custom_attributes_enabled
 
       cooked_html = Nokogiri::HTML.fragment(@original_cooked)
-      post_quotes = cooked_html.css("aside.quote.no-group .title")
+      post_quotes = cooked_html.css("aside.quote .title")
 
       return @original_cooked if post_quotes.blank?
 
